@@ -4,22 +4,34 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include "server.h"
 #include "common.h"
 #include "socket_utils.h"
 #include "crypto.h"
 #include "thread_pool.h"
 
-#define MAX_BLOCKS 8192  // max 64KB
+volatile sig_atomic_t stop_server = 0;
+int listen_sock = -1;
+
+void handle_sigint(int signo) {
+    (void)signo;
+    stop_server = 1;
+    if (listen_sock >= 0) {
+        close(listen_sock);  // Questo forza accept() a fallire
+        listen_sock = -1;
+    }
+}
 
 int run_server(int num_threads, const char* file_prefix, int port) {
-    
+    signal(SIGINT, handle_sigint);
+
     if (num_threads <= 0 || port <= 0) {
         fprintf(stderr, "Argomenti non validi\n");
         return EXIT_FAILURE;
     }
 
     // Inizializza socket di ascolto
-    int listen_sock = socket(AF_INET, SOCK_STREAM, 0);
+    listen_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_sock < 0) {
         perror("Errore creazione socket");
         return EXIT_FAILURE;
@@ -50,6 +62,7 @@ int run_server(int num_threads, const char* file_prefix, int port) {
         socklen_t addrlen = sizeof(client_addr);
         int client_sock = accept(listen_sock, (struct sockaddr*)&client_addr, &addrlen);
         if (client_sock < 0) {
+            if (stop_server) break;  // Uscita pulita
             perror("Errore accept");
             continue;
         }
@@ -115,6 +128,8 @@ int run_server(int num_threads, const char* file_prefix, int port) {
         free(data);
     }
 
+    printf("Terminazione server...\n");
     close(listen_sock);
+    listen_sock = -1;
     return EXIT_SUCCESS;
 }
