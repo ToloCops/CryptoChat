@@ -4,28 +4,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "client.h"
 #include "crypto.h"
 #include "common.h"
 #include "thread_pool.h"
 #include "socket_utils.h"
 
-#define MAX_FILE_SIZE 65536  // 64 KB (modificabile)
-
-void print_usage(const char* progname) {
-    fprintf(stderr, "Uso: %s <file> <chiave esadecimale> <num_thread>\n", progname);
-}
-
-int main(int argc, char* argv[]) {
-    if (argc != 6) {
-        fprintf(stderr, "Uso: %s <file> <chiave_hex> <thread> <ip> <porta>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    const char* filename = argv[1];
-    uint64_t key = strtoull(argv[2], NULL, 16);
-    int num_threads = atoi(argv[3]);
-    const char* ip_addr = argv[4];
-    int port = atoi(argv[5]);
+int run_client(const char* filename, uint64_t key, int num_threads, const char* ip_addr, int port) {
 
     if (num_threads <= 0) {
         fprintf(stderr, "Errore: il numero di thread deve essere maggiore di 0\n");
@@ -104,4 +89,6 @@ int main(int argc, char* argv[]) {
     }
 
     close(sockfd);
+
+    return EXIT_SUCCESS;
 }
