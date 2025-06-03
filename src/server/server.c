@@ -30,8 +30,6 @@ void* handle_client(void* arg) {
     int num_threads = args->num_threads;
     const char* file_prefix = args->file_prefix;
 
-    free(args);
-
     // Receives [L, K, n]
     uint64_t header[3];
     if (recv_all(client_sock, header, sizeof(header)) < 0) {
@@ -86,7 +84,7 @@ void* handle_client(void* arg) {
     sem_post(&sem_conn);  // Frees the semaphore for a new connection
 
     char filename[256];
-    snprintf(filename, sizeof(filename), "%s_output_%d.txt", file_prefix, client_sock);
+    snprintf(filename, sizeof(filename), "%s_output.txt", file_prefix);
 
     // Blocks critical signals before writing to file
     pthread_sigmask(SIG_BLOCK, &block, &old);
@@ -105,11 +103,14 @@ void* handle_client(void* arg) {
 
     free(encrypted_blocks);
     free(data);
+    free(args);
 
     return NULL;
 }
 
 int run_server(int num_threads, const char* file_prefix, int port, int max_conn) {
+    // Prints file prefix
+    printf("File prefix: %s\n", file_prefix);
     sem_init(&sem_conn, 0, max_conn);
     signal(SIGINT, handle_sigint);
 
@@ -130,6 +131,12 @@ int run_server(int num_threads, const char* file_prefix, int port, int max_conn)
         .sin_addr.s_addr = INADDR_ANY,
         .sin_port = htons(port)
     };
+
+    int opt = 1;
+    if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("Errore setsockopt");
+    }
+
 
     if (bind(listen_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Errore bind");
@@ -169,6 +176,8 @@ int run_server(int num_threads, const char* file_prefix, int port, int max_conn)
         args->client_sock = client_sock;
         args->num_threads = num_threads;
         strncpy(args->file_prefix, file_prefix, sizeof(args->file_prefix) - 1);
+        // Prints file prefix
+        printf("File prefix: %s\n", file_prefix);
         args->file_prefix[sizeof(args->file_prefix) - 1] = '\0';
 
         if (pthread_create(&tid, NULL, handle_client, args) != 0) {
@@ -178,7 +187,7 @@ int run_server(int num_threads, const char* file_prefix, int port, int max_conn)
             continue;
         }
 
-        pthread_detach(tid);  // il thread si auto-pulisce
+        pthread_detach(tid);
     }
 
     sem_destroy(&sem_conn);  // Destroy the semaphore
