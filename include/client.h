@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define MAX_FILE_SIZE 65536  // 64 KB (modificabile)
+#define MAX_FILE_SIZE 65536  // 64 KB
 
 int run_client(const char* filename, uint64_t key, int num_threads, const char* ip_addr, int port);
 

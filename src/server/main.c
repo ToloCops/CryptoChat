@@ -5,12 +5,12 @@
 #include "server.h"
 
 void print_usage(const char* progname) {
-    fprintf(stderr, "Uso: %s <thread> <prefisso_file> <porta>\n", progname);
+    fprintf(stderr, "Usage: %s <thread> <file_prefix> <port>\n", progname);
 }
 
 int main(int argc, char* argv[]) {
     if (argc != 5) {
-        fprintf(stderr, "Uso: %s <thread> <prefisso_file> <porta> <max_conn>\n", argv[0]);
+        print_usage(argv[0]);
         return EXIT_FAILURE;
     }
 

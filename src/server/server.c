@@ -6,7 +6,6 @@
 #include <unistd.h>
 
 #include "server.h"
-#include "common.h"
 #include "socket_utils.h"
 #include "crypto.h"
 #include "thread_pool.h"
@@ -20,7 +19,7 @@ void handle_sigint(int signo) {
     (void)signo;
     stop_server = 1;
     if (listen_sock >= 0) {
-        close(listen_sock);  // Questo forza accept() a fallire
+        close(listen_sock);  // Force close the listening socket
         listen_sock = -1;
     }
 }
@@ -31,9 +30,9 @@ void* handle_client(void* arg) {
     int num_threads = args->num_threads;
     const char* file_prefix = args->file_prefix;
 
-    free(args);  // Libera subito la memoria allocata per l'argomento
+    free(args);
 
-    // Ricevi [L, K, n]
+    // Receives [L, K, n]
     uint64_t header[3];
     if (recv_all(client_sock, header, sizeof(header)) < 0) {
         perror("Errore ricezione header");
@@ -65,29 +64,31 @@ void* handle_client(void* arg) {
         return NULL;
     }
 
-    // Blocca segnali prima di decifrare
+    // Blocks critical signals before decrypting
     sigset_t block = get_blocking_signal_set();
     sigset_t old;
     pthread_sigmask(SIG_BLOCK, &block, &old);
 
     run_parallel_encryption(encrypted_blocks, num_blocks, key, num_threads);
 
+    // Unblocks critical signals after decryption
     pthread_sigmask(SIG_SETMASK, &old, NULL);
 
-    // Debug: simula elaborazione lenta
+    // Debug: simulate heavy work
     printf("Thread client %d: sleeping...\n", client_sock);
-    sleep(5);  // Simula lavoro "pesante"
+    sleep(5); 
 
     uint8_t* data = convert_blocks_to_data(encrypted_blocks, num_blocks, original_len);
 
     char ack = 'A';
     send_all(client_sock, &ack, 1);
     close(client_sock);
-    sem_post(&sem_conn);  // Segnala che una connessione è terminata
+    sem_post(&sem_conn);  // Frees the semaphore for a new connection
 
     char filename[256];
     snprintf(filename, sizeof(filename), "%s_output_%d.txt", file_prefix, client_sock);
 
+    // Blocks critical signals before writing to file
     pthread_sigmask(SIG_BLOCK, &block, &old);
 
     FILE* f = fopen(filename, "wb");
@@ -99,6 +100,7 @@ void* handle_client(void* arg) {
         perror("Errore scrittura file");
     }
 
+    // Unblocks critical signals after writing to file
     pthread_sigmask(SIG_SETMASK, &old, NULL);
 
     free(encrypted_blocks);
@@ -116,7 +118,7 @@ int run_server(int num_threads, const char* file_prefix, int port, int max_conn)
         return EXIT_FAILURE;
     }
 
-    // Inizializza socket di ascolto
+    // Initialize the listening socket
     listen_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_sock < 0) {
         perror("Errore creazione socket");
@@ -141,7 +143,7 @@ int run_server(int num_threads, const char* file_prefix, int port, int max_conn)
         return EXIT_FAILURE;
     }
 
-    printf("Server in ascolto su porta %d...\n", port);
+    printf("Server listening at port %d...\n", port);
 
     while (1) {
         struct sockaddr_in client_addr;
@@ -149,11 +151,11 @@ int run_server(int num_threads, const char* file_prefix, int port, int max_conn)
         int client_sock = accept(listen_sock, (struct sockaddr*)&client_addr, &addrlen);
         if (client_sock < 0) {
             if (stop_server) break;
-            perror("Errore accept");
+            perror("Error accepting connection");
             continue;
         }
 
-        // Attendi disponibilità per una nuova connessione attiva
+        // Wait for a semaphore slot
         sem_wait(&sem_conn);
 
         pthread_t tid;
@@ -179,7 +181,7 @@ int run_server(int num_threads, const char* file_prefix, int port, int max_conn)
         pthread_detach(tid);  // il thread si auto-pulisce
     }
 
-    sem_destroy(&sem_conn);
+    sem_destroy(&sem_conn);  // Destroy the semaphore
 
     printf("Terminazione server...\n");
     close(listen_sock);

@@ -6,11 +6,8 @@
 
 #define BLOCK_SIZE 8  // 64 bit = 8 byte
 
-// Funzioni per cifrare/decifrare un blocco
 void encrypt_block(uint64_t* dest, uint64_t src, uint64_t key);
-void decrypt_block(uint64_t* dest, uint64_t src, uint64_t key);
 
-// Utility: conversioni da dati a blocchi e viceversa
 uint64_t* pad_and_convert_to_blocks(const uint8_t* data, size_t length, size_t* num_blocks_out);
 uint8_t* convert_blocks_to_data(const uint64_t* blocks, size_t num_blocks, size_t original_length);
 

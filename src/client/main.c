@@ -5,7 +5,7 @@
 #include "client.h"
 
 void print_usage(const char* progname) {
-    fprintf(stderr, "Uso: %s <file> <chiave_hex> <thread> <ip> <porta>\n", progname);
+    fprintf(stderr, "Usage: %s <file> <hex_key> <thread> <ip> <port>\n", progname);
 }
 
 int main(int argc, char* argv[]) {
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     int port = atoi(argv[5]);
 
     if (num_threads <= 0) {
-        fprintf(stderr, "Errore: il numero di thread deve essere maggiore di 0\n");
+        fprintf(stderr, "Error: # of threads must be > 0.\n");
         return EXIT_FAILURE;
     }
 

@@ -11,6 +11,6 @@ typedef struct {
     size_t end;
 } EncryptTask;
 
-void run_parallel_encryption(uint64_t* blocks, size_t num_blocks, uint64_t key, int num_threads);
+void run_parallel_encryption(uint64_t* blocks, size_t num_blocks, uint64_t key, int num_threads);  // Runs parallel encryption on the blocks using the specified key and number of threads
 
 #endif

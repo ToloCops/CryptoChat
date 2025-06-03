@@ -3,6 +3,6 @@
 
 #include <signal.h>
 
-sigset_t get_blocking_signal_set();
+sigset_t get_blocking_signal_set();  // Returns a signal set that blocks SIGINT, SIGTERM, SIGUSR1, SIGUSR2, and SIGALRM
 
 #endif
