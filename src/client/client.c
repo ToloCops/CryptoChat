@@ -9,6 +9,7 @@
 #include "common.h"
 #include "thread_pool.h"
 #include "socket_utils.h"
+#include "signal_utils.h"
 
 int run_client(const char* filename, uint64_t key, int num_threads, const char* ip_addr, int port) {
 
@@ -50,7 +51,13 @@ int run_client(const char* filename, uint64_t key, int num_threads, const char* 
         return EXIT_FAILURE;
     }
 
+    sigset_t set = get_blocking_signal_set();
+    sigset_t old;
+    pthread_sigmask(SIG_BLOCK, &set, &old);  // Blocca i segnali critici
+
     run_parallel_encryption(blocks, num_blocks, key, num_threads);
+
+    pthread_sigmask(SIG_SETMASK, &old, NULL);
 
     // Stampa i blocchi cifrati
     printf("Blocchi cifrati (hex):\n");
@@ -69,6 +76,8 @@ int run_client(const char* filename, uint64_t key, int num_threads, const char* 
         return EXIT_FAILURE;
     }
 
+    pthread_sigmask(SIG_BLOCK, &set, &old);  // Blocca i segnali critici
+
     // Invio: [L, K, n, blocchi] (tutti uint64_t)
     uint64_t header[3] = { (uint64_t)read_bytes, key, (uint64_t)num_blocks };
     if (send_all(sockfd, header, sizeof(header)) < 0 ||
@@ -79,6 +88,8 @@ int run_client(const char* filename, uint64_t key, int num_threads, const char* 
         free(blocks);
         return EXIT_FAILURE;
     }
+
+    pthread_sigmask(SIG_SETMASK, &old, NULL);
 
     // Attendi ACK (es: 1 byte di risposta)
     char ack;

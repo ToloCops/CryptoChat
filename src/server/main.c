@@ -9,19 +9,15 @@ void print_usage(const char* progname) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 4) {
-        print_usage(argv[0]);
+    if (argc != 5) {
+        fprintf(stderr, "Uso: %s <thread> <prefisso_file> <porta> <max_conn>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     int num_threads = atoi(argv[1]);
     const char* file_prefix = argv[2];
     int port = atoi(argv[3]);
+    int max_conn = atoi(argv[4]);
 
-    if (num_threads <= 0 || port <= 0) {
-        fprintf(stderr, "Argomenti non validi\n");
-        return EXIT_FAILURE;
-    }
-
-    return run_server(num_threads, file_prefix, port);
+    return run_server(num_threads, file_prefix, port, max_conn);
 }
